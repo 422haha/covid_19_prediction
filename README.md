@@ -61,7 +61,7 @@ COVID-19는 새로운 유형의 코로나바이러스(SARS-CoV-2)에 의한 호�
 
 - changepoints 그래프
   
-  <img title="" src="file:///COVID-19%20확진자%20수%20예측/image/changepoints%20그래프.png" alt="" data-align="center">
+  <img title="" src="COVID-19%20확진자%20수%20예측/image/changepoints%20그래프.png" alt="" data-align="center">
 
 ## 예측 성능 평가
 
@@ -89,7 +89,7 @@ RMSE (Root Mean Squared Error): 49499.54
 
 ### 교차 검증 결과 시각화
 
-<img title="" src="file:///COVID-19%20확진자%20수%20예측/image/교차%20검증%20결과%20시각화.png" alt="" data-align="center">
+<img title="" src="COVID-19%20확진자%20수%20예측/image/교차%20검증%20결과%20시각화.png" alt="" data-align="center">
 
 ## 결론
 
