@@ -8,25 +8,40 @@ Original file is located at
 
 # 머신러닝 모델을 이용한 대한민국 코로나19 신규 확진자 예측
 
-## 라이브러리 불러오기
+## 패키지 설치
 """
+
+!pip install prophet plotly
+
+"""## 라이브러리 불러오기"""
 
 import pandas as pd
 import plotly.graph_objs as go
 import plotly.offline as py
-from fbprophet import Prophet
-from fbprophet.plot import plot_plotly, add_changepoints_to_plot
-
+from prophet import Prophet
+from prophet.plot import plot_plotly, add_changepoints_to_plot
+from prophet.diagnostics import cross_validation, performance_metrics
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 import numpy as np
 
 """## 데이터 불러오기"""
 
 # 코로나 19 한국 발생 현황
 url = 'https://raw.githubusercontent.com/jooeungen/coronaboard_kr/master/kr_daily.csv'
-df = pd.read_csv(url, error_bad_lines=False)
+df = pd.read_csv(url, on_bad_lines='skip')
 df.shape
 
 df.info()
+
+df['date'] = pd.to_datetime(df['date'],format='%Y%m%d')
+df['date']
+
+# 원하는 기간 설정 (2020-01-21부터 2022-01-17까지)
+start_date = '2020-01-21'
+end_date = '2022-01-17'
+
+# 기간에 맞는 데이터 필터링
+df = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
 
 df.head(5)
 
@@ -50,8 +65,12 @@ df.info()
 df=df.drop(['death', 'released', 'tested', 'negative', 'critical'], axis=1)
 df.tail()
 
-df['date'] = pd.to_datetime(df['date'],format='%Y%m%d')
-df['date']
+"""### 결측치 처리"""
+
+# 결측치 전방 및 후방 채우기
+df.fillna(method='ffill', inplace=True)
+df.fillna(method='bfill', inplace=True)
+df.isnull().sum()
 
 """## 시각화
 
@@ -70,7 +89,7 @@ fig.add_trace(
     )
 )
 
-fig
+fig.show()
 
 """## 학습
 
@@ -120,3 +139,50 @@ py.iplot(fig)
 # changepoint를 그래프에 반영
 fig = m.plot(forecast)
 a = add_changepoints_to_plot(fig.gca(), m, forecast)
+
+"""### 예측 성능 평가"""
+
+# 실제값과 예측값 비교
+# 예측을 시작하는 시점을 맞추기 위해 실제값의 마지막 7일이 아니라 전체 예측기간의 마지막 7일로 설정한다
+y_true = df['confirmed'].values[-7:]  # 실제값
+y_pred = forecast['yhat'].values[-7:]  # 예측값
+
+# 실제값과 예측값을 확인하기 위해 출력
+print("Actual values (last 7 days):", y_true)
+print("Predicted values (last 7 days):", y_pred)
+
+# MAE와 RMSE 계산
+mae = mean_absolute_error(y_true, y_pred)
+rmse = mean_squared_error(y_true, y_pred, squared=False)
+
+print(f'MAE: {mae}')
+print(f'RMSE: {rmse}')
+
+"""### 교차 검증"""
+
+# 교차 검증
+df_cv = cross_validation(m, initial='365 days', period='180 days', horizon='90 days')
+df_p = performance_metrics(df_cv)
+df_p.head()
+
+"""### 교차 검증 결과 시각화"""
+
+# 교차 검증 RMSE를 시각화
+fig = go.Figure()
+
+fig.add_trace(
+    go.Scatter(
+        x=df_p['horizon'],
+        y=df_p['rmse'],
+        mode='lines+markers',
+        name='RMSE'
+    )
+)
+
+fig.update_layout(
+    title='Cross Validation RMSE over Horizon',
+    xaxis_title='Horizon',
+    yaxis_title='RMSE',
+)
+
+fig.show()
